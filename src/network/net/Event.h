@@ -15,7 +15,7 @@ namespace tmms
         public:
             Event(EventLoop *loop);
             Event(EventLoop* loop,int fd);
-            ~Event();
+            virtual ~Event();
             virtual void OnRead(){};//read event callback
             virtual void OnWrite(){};//write event callback
             virtual void OnClose(){};//close event callback
