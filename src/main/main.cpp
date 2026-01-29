@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "base/Config.h"
-#include "stdio.h"
 #include <iostream>
 #include "base/FileLog.h"
 #include "base/FileMgr.h"
@@ -38,8 +37,9 @@ int main() {
 
     log->SetRotate(log_info->rotate_type);
 
-    g_logger = new Logger(log);
-    g_logger->SetLogLevel(log_info->level);
+    tmms::base::g_logger = new Logger(log);
+    tmms::base::g_logger->SetLogLevel(log_info->level);
+
 
     TaskPtr task = std::make_shared<Task>(
         [](const TaskPtr &task){

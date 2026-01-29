@@ -41,7 +41,7 @@ void TcpConnection::ForceClose()
 void TcpConnection::OnRead()
 {
     if(closed_){
-        //NETWORK_LOG_TRACE<<"host:"<<peer_addr_.ToIpPort()<<" closed";
+        NETWORK_LOG_TRACE<<"host:"<<peer_addr_.ToIpPort()<<" closed";
         return;
     }
     while(true)
@@ -57,7 +57,7 @@ void TcpConnection::OnRead()
             break;
         }else{
             if(err != EINTR&&err != EAGAIN&&err != EWOULDBLOCK){
-                //NETWORK_LOG_ERROR<<"read error:"<<err;
+                NETWORK_LOG_ERROR<<"read error:"<<err;
                 OnClose();
             }
             break;

@@ -24,14 +24,14 @@ int main()
             connection->SetMessageCallback([](const TcpConnectionPtr&con,MsgBuffer &buf){
                 std::cout<<"recv msg:"<<buf.Peek()<<std::endl;
                 buf.RetrieveAll();
-                //con->Send(http_request,strlen(http_request));
+                con->Send(http_request,strlen(http_request));
             });
             connection->SetWriteCompleteCallback([&loop](const TcpConnectionPtr&con){
                 std::cout<<"write complete host:"<<con->PeerAddr().ToIpPort()<<std::endl;
                 loop->DelEvent(con);
                 con->ForceClose();
             });
-            connection->EnableCheckTimeout(3);
+            //connection->EnableCheckTimeout(3);
             list.push_back(connection);
             loop->AddEvent(connection);
         });

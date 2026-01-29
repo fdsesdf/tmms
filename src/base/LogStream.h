@@ -5,8 +5,7 @@
 namespace tmms
 {
     namespace base
-    {
-        class Logger;      // ✅ 前向声明
+    {   
         class LogStream
         {
         public:

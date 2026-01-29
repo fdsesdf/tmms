@@ -1,12 +1,8 @@
 #include "base/Logger.h"
 
 #include <iostream>
-
-namespace tmms {
-namespace base {
-
-Logger* g_logger = nullptr;   // ✅ 唯一一次定义
-
+using namespace tmms::base;
+tmms::base::Logger* tmms::base::g_logger = nullptr;
 Logger::Logger(const FileLogPtr& log)
     : log_(log) {}
 
@@ -26,5 +22,4 @@ void Logger::Write(const std::string& msg) {
     }
 }
 
-} // namespace base
-} // namespace tmms
+
