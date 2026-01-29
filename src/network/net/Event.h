@@ -23,6 +23,7 @@ namespace tmms
             bool EnableRead(bool enable);//enable/disable read event
             bool EnableWrite(bool enable);//enable/disable write event
             int Fd() const;//get fd
+            void Close();//close fd
         protected:
             EventLoop* loop_{nullptr};
             int fd_{-1};

@@ -7,5 +7,5 @@ target_link_libraries(InetAddressTest base network)
 add_executable(SocketOptTest SocketOptTest.cpp)
 target_link_libraries(SocketOptTest base network)
 
-add_executable(AcceptorTest AcceptorTest.cpp)
-target_link_libraries(AcceptorTest base network)
+add_executable(TcpConnectorTest TcpConnectorTest.cpp)
+target_link_libraries(TcpConnectorTest base network)
