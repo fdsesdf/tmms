@@ -22,8 +22,8 @@ int main()
             std::cout<<"host:"<<addr.ToIpPort()<<std::endl;
             TcpConnectionPtr connection = std::make_shared<TcpConnection>(loop,fd,server,addr);
             connection->SetMessageCallback([](const TcpConnectionPtr&con,MsgBuffer &buf){
-                std::cout<<"recv msg:"<<buf.Peek()<<std::endl;
-                buf.RetrieveAll();
+                std::cout<<"recv msg:"<<buf.peek()<<std::endl;
+                buf.retrieveAll();
                 con->Send(http_request,strlen(http_request));
             });
             connection->SetWriteCompleteCallback([&loop](const TcpConnectionPtr&con){

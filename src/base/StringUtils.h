@@ -16,6 +16,7 @@ namespace tmms
             static std::string FileName(const std::string &path);//获取文件名
             static std::string FileExtension(const std::string &path);//获取文件扩展名
             static std::vector<std::string> SplitString(const std::string &s, const string &delimiter);//分割字符串
+            static std::vector<std::string> SplitStringwithFSM(const std::string &s, const char delimiter);//使用有限状态机分割字符串
         };
     }
 }   

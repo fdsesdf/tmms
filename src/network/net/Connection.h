@@ -23,6 +23,12 @@ namespace tmms
             kUserContext ,
             kFlcContext ,
         };
+        struct BufferNode{
+            BufferNode(void *buf,size_t s):addr(buf),size(s){}
+            void *addr{nullptr};
+            size_t size{0};
+        };
+        using BufferNodePtr = std::shared_ptr<BufferNode>;
         class Connection:public Event
         {
         public:
@@ -40,7 +46,7 @@ namespace tmms
             std::shared_ptr<T> GetContext(int type) const{
                 auto iter = contexts_.find(type);
                 if(iter != contexts_.end()){
-                    return std::dynamic_pointer_cast<T>(iter->second);
+                    return std::static_pointer_cast<T>(iter->second);
                 }
                 return nullptr;
             }

@@ -6,14 +6,14 @@ using namespace tmms::base;
 
 bool Config::LoadConfig(const std::string &file)
 {
-    LOG_DEBUG<<"config file:"<<file;
+    NET_LOG_DEBUG<<"config file:"<<file;
     Json::Value root;
     Json::CharReaderBuilder reader;
     std::ifstream in(file);
     std::string errs;
     auto ok=Json::parseFromStream(reader, in, &root, &errs);
     if(!ok){
-        LOG_DEBUG <<"config file:"<<file<<" parse error.";
+        NET_LOG_DEBUG <<"config file:"<<file<<" parse error.";
         return false;
     }
     Json::Value nameObj=root["name"];
@@ -86,7 +86,7 @@ LogInfoPtr Config::GetLogInfo()
 
 bool ConfigMgr::LoadConfig(const std::string &file)
 {
-    LOG_DEBUG << "load config file: " << file;
+     NET_LOG_DEBUG << "load config file: " << file;
     ConfigPtr new_config = std::make_shared<Config>();
     if (!new_config->LoadConfig(file))
     {

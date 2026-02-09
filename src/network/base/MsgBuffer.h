@@ -1,44 +1,274 @@
-#ifndef TMMS_NETWORK_MSGBUFFER_H
-#define TMMS_NETWORK_MSGBUFFER_H
+// Copyright 2010, Shuo Chen.  All rights reserved.
+// http://code.google.com/p/muduo/
+//
+// Use of this source code is governed by a BSD-style license
+// that can be found in the License file.
 
+// Author: Shuo Chen (chenshuo at chenshuo dot com)
+//
+// This is a public header file, it must only include public header files.
+
+#ifndef MUDUO_NET_BUFFER_H
+#define MUDUO_NET_BUFFER_H
+#include <algorithm>
 #include <vector>
-#include <cstddef>
-#include <cstdint>
-#include <unistd.h>
-namespace tmms {
-namespace network {
-
-class MsgBuffer
+#include <assert.h>
+#include <string.h>
+#include <unistd.h>  
+#include <string>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+namespace tmms
 {
-public:
-    explicit MsgBuffer(size_t size = 2048);
-    const char* Peek() const;   // 查看可读数据起始地址
-    void RetrieveAll();         // 清空缓冲区
-    size_t ReadableBytes() const;
-    size_t WritableBytes() const;
+namespace network
+{
 
-    char* begin();
-    const char* begin() const;
+/// A buffer class modeled after org.jboss.netty.buffer.ChannelBuffer
+///
+/// @code
+/// +-------------------+------------------+------------------+
+/// | prependable bytes |  readable bytes  |  writable bytes  |
+/// |                   |     (CONTENT)    |                  |
+/// +-------------------+------------------+------------------+
+/// |                   |                  |                  |
+/// 0      <=      readerIndex   <=   writerIndex    <=     size
+/// @endcode
+class MsgBuffer 
+{
+ public:
+  static const size_t kCheapPrepend = 8;
+  static const size_t kInitialSize = 1024;
 
-    void Append(const char* data, size_t len);
+  explicit MsgBuffer(size_t initialSize = kInitialSize)
+    : buffer_(kCheapPrepend + initialSize),
+      readerIndex_(kCheapPrepend),
+      writerIndex_(kCheapPrepend)
+  {
+    assert(readableBytes() == 0);
+    assert(writableBytes() == initialSize);
+    assert(prependableBytes() == kCheapPrepend);
+  }
 
-    ssize_t ReadFd(int fd, int* savedErrno);
+  // implicit copy-ctor, move-ctor, dtor and assignment are fine
+  // NOTE: implicit move-ctor is added in g++ 4.6
 
-    void Retrieve(size_t len);
-    
+  void swap(MsgBuffer& rhs)
+  {
+    buffer_.swap(rhs.buffer_);
+    std::swap(readerIndex_, rhs.readerIndex_);
+    std::swap(writerIndex_, rhs.writerIndex_);
+  }
 
-    static const char kCRLF[];
+  size_t readableBytes() const
+  { return writerIndex_ - readerIndex_; }
 
-private:
-    void EnsureWritableBytes(size_t len);
+  size_t writableBytes() const
+  { return buffer_.size() - writerIndex_; }
 
-private:
-    std::vector<char> buffer_;
-    size_t head_;
-    size_t tail_;
+  size_t prependableBytes() const
+  { return readerIndex_; }
+
+  const char* peek() const
+  { return begin() + readerIndex_; }
+
+  const char* findCRLF() const
+  {
+    // FIXME: replace with memmem()?
+    const char* crlf = std::search(peek(), beginWrite(), kCRLF, kCRLF+2);
+    return crlf == beginWrite() ? NULL : crlf;
+  }
+
+  const char* findCRLF(const char* start) const
+  {
+    assert(peek() <= start);
+    assert(start <= beginWrite());
+    // FIXME: replace with memmem()?
+    const char* crlf = std::search(start, beginWrite(), kCRLF, kCRLF+2);
+    return crlf == beginWrite() ? NULL : crlf;
+  }
+
+  const char* findEOL() const
+  {
+    const void* eol = memchr(peek(), '\n', readableBytes());
+    return static_cast<const char*>(eol);
+  }
+
+  const char* findEOL(const char* start) const
+  {
+    assert(peek() <= start);
+    assert(start <= beginWrite());
+    const void* eol = memchr(start, '\n', beginWrite() - start);
+    return static_cast<const char*>(eol);
+  }
+
+  // retrieve returns void, to prevent
+  // string str(retrieve(readableBytes()), readableBytes());
+  // the evaluation of two functions are unspecified
+  void retrieve(size_t len)
+  {
+    assert(len <= readableBytes());
+    if (len < readableBytes())
+    {
+      readerIndex_ += len;
+    }
+    else
+    {
+      retrieveAll();
+    }
+  }
+
+  void retrieveUntil(const char* end)
+  {
+    assert(peek() <= end);
+    assert(end <= beginWrite());
+    retrieve(end - peek());
+  }
+
+  void retrieveInt64()
+  {
+    retrieve(sizeof(int64_t));
+  }
+
+  void retrieveInt32()
+  {
+    retrieve(sizeof(int32_t));
+  }
+
+  void retrieveInt16()
+  {
+    retrieve(sizeof(int16_t));
+  }
+
+  void retrieveInt8()
+  {
+    retrieve(sizeof(int8_t));
+  }
+
+  void retrieveAll()
+  {
+    readerIndex_ = kCheapPrepend;
+    writerIndex_ = kCheapPrepend;
+  }
+
+  std::string retrieveAllAsString()
+  {
+    return retrieveAsString(readableBytes());
+  }
+
+  std::string retrieveAsString(size_t len)
+  {
+    assert(len <= readableBytes());
+    std::string result(peek(), len);
+    retrieve(len);
+    return result;
+  }
+
+
+
+
+
+  void append(const char* /*restrict*/ data, size_t len)
+  {
+    ensureWritableBytes(len);
+    std::copy(data, data+len, beginWrite());
+    hasWritten(len);
+  }
+
+  void append(const void* /*restrict*/ data, size_t len)
+  {
+    append(static_cast<const char*>(data), len);
+  }
+
+  void ensureWritableBytes(size_t len)
+  {
+    if (writableBytes() < len)
+    {
+      makeSpace(len);
+    }
+    assert(writableBytes() >= len);
+  }
+
+  char* beginWrite()
+  { return begin() + writerIndex_; }
+
+  const char* beginWrite() const
+  { return begin() + writerIndex_; }
+
+  void hasWritten(size_t len)
+  {
+    assert(len <= writableBytes());
+    writerIndex_ += len;
+  }
+
+  void unwrite(size_t len)
+  {
+    assert(len <= readableBytes());
+    writerIndex_ -= len;
+  }
+uint32_t peekInt32() const
+{
+    if (readableBytes() < sizeof(uint32_t)) {
+        return 0;  
+    }
+    uint32_t value = 0;
+    memcpy(&value, peek(), sizeof(uint32_t));
+
+    return ntohl(value);
+}
+
+  uint32_t readInt32()
+  {
+    uint32_t ret=peekInt32();
+    retrieve(4);
+    return ret;
+  }
+ 
+  
+
+  /// Read data directly into buffer.
+  ///
+  /// It may implement with readv(2)
+  /// @return result of read(2), @c errno is saved
+  ssize_t readFd(int fd, int* savedErrno);
+
+ private:
+
+  char* begin()
+  { return &*buffer_.begin(); }
+
+  const char* begin() const
+  { return &*buffer_.begin(); }
+
+  void makeSpace(size_t len)
+  {
+    if (writableBytes() + prependableBytes() < len + kCheapPrepend)
+    {
+      // FIXME: move readable data
+      buffer_.resize(writerIndex_+len);
+    }
+    else
+    {
+      // move readable data to the front, make space inside buffer
+      assert(kCheapPrepend < readerIndex_);
+      size_t readable = readableBytes();
+      std::copy(begin()+readerIndex_,
+                begin()+writerIndex_,
+                begin()+kCheapPrepend);
+      readerIndex_ = kCheapPrepend;
+      writerIndex_ = readerIndex_ + readable;
+      assert(readable == readableBytes());
+    }
+  }
+
+ private:
+  std::vector<char> buffer_;
+  size_t readerIndex_;
+  size_t writerIndex_;
+
+  static const char kCRLF[];
 };
 
-} // namespace network
-} // namespace tmms
+}  // namespace net
+}  // namespace muduo
 
-#endif
+#endif  // MUDUO_NET_BUFFER_H

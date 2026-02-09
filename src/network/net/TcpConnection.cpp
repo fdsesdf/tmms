@@ -9,7 +9,7 @@ TcpConnection::TcpConnection(EventLoop *loop,int socketfd,const InetAddress &loc
 
 TcpConnection::~TcpConnection()
 {
-    OnClose();
+    
 }
 
 void TcpConnection::SetCloseCallback(const CloseConnectionCallback &cb)
@@ -22,12 +22,23 @@ void TcpConnection::SetCloseCallback(CloseConnectionCallback &&cb)
 }
 void TcpConnection::OnClose()
 {
+    if (closed_) return;
     loop_->AssertInLoopThread();
+
+
+     int err = 0;
+    socklen_t len = sizeof(err);
+    ::getsockopt(fd_, SOL_SOCKET, SO_ERROR, &err, &len);
+
+    std::cout << "[OnClose] so_error=" << err 
+              << " errno=" << errno << std::endl;
+
     if(!closed_){
+        closed_ = true;
+
         if(close_cb_){
             close_cb_(std::dynamic_pointer_cast<TcpConnection>(shared_from_this()));
         }
-        closed_ = true;
         Event::Close();
     }
 }
@@ -47,7 +58,7 @@ void TcpConnection::OnRead()
     while(true)
     {
         int err=0;
-        auto ret=message_buffer_.ReadFd(fd_,&err);
+        auto ret=message_buffer_.readFd(fd_,&err);
         if(ret > 0){
             if(message_cb_){
                 message_cb_(std::dynamic_pointer_cast<TcpConnection>(shared_from_this()),message_buffer_);
@@ -56,6 +67,7 @@ void TcpConnection::OnRead()
             OnClose();
             break;
         }else{
+            std::cout << "[OnWrite ERROR] errno=" << errno << std::endl;
             if(err != EINTR&&err != EAGAIN&&err != EWOULDBLOCK){
                 NETWORK_LOG_ERROR<<"read error:"<<err;
                 OnClose();
@@ -223,7 +235,9 @@ void TcpConnection::SetTimeoutCallback(int timeout, TimeoutCallback &&cb)
 }
 void TcpConnection::EnableCheckTimeout(int32_t max_time)
 {
-    auto tp=std::make_shared<TimeoutEntry>(std::dynamic_pointer_cast<TcpConnection>(shared_from_this()));
+    
+    auto tp=std::make_shared<TimeoutEntry>
+    (std::dynamic_pointer_cast<TcpConnection>(shared_from_this()));
     max_idle_time_=max_time;
     timeout_entry_=tp;
     loop_->InsertEntry(max_idle_time_,tp);

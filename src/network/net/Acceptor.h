@@ -15,15 +15,15 @@ namespace tmms
             Acceptor(EventLoop *loop, const InetAddress &addr);
             ~Acceptor();
 
-            void SetAcceptCallback(const AcceptCallback &cb);
-            void SetAcceptCallback(const AcceptCallback &&cb);
-            void Start();
-            void Stop();
-            void OnRead() override;
-            void OnError(const std::string & msg) override;
-            void OnClose() override;
+            void SetAcceptCallback(const AcceptCallback &cb);//设置接受回调
+            void SetAcceptCallback(const AcceptCallback &&cb);//设置接受回调
+            void Start();//启动接受
+            void Stop();//停止接受
+            void OnRead() override;//读取事件
+            void OnError(const std::string & msg) override;//错误事件
+            void OnClose() override;//关闭事件
         private:
-            void Open();
+            void Open();//打开监听套接字
             AcceptCallback accept_cb_;
             InetAddress addr_;
             SocketOpt *socket_opt_{nullptr};

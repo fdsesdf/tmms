@@ -24,23 +24,23 @@ namespace tmms
         };
     }
 }   
-#define LOG_TRACE \
+#define NET_LOG_TRACE \
     if(tmms::base::g_logger && tmms::base::g_logger->GetLogLevel()<=tmms::base::kTrace) \
         tmms::base::LogStream(tmms::base::g_logger,__FILE__,__LINE__,tmms::base::kTrace,__func__)
 
-#define LOG_DEBUG \
+#define NET_LOG_DEBUG \
     if(tmms::base::g_logger && tmms::base::g_logger->GetLogLevel()<=tmms::base::kDebug) \
         tmms::base::LogStream(tmms::base::g_logger,__FILE__,__LINE__,tmms::base::kDebug,__func__)
 
-#define LOG_INFO \
+#define NET_LOG_INFO \
     if(tmms::base::g_logger && tmms::base::g_logger->GetLogLevel()<=tmms::base::kInfo) \
         tmms::base::LogStream(tmms::base::g_logger,__FILE__,__LINE__,tmms::base::kInfo)
 
-#define LOG_WARN \
+#define NET_LOG_WARN \
     if(tmms::base::g_logger) \
         tmms::base::LogStream(tmms::base::g_logger,__FILE__,__LINE__,tmms::base::kWarn)
 
-#define LOG_ERROR \
+#define NET_LOG_ERROR \
     if(tmms::base::g_logger && tmms::base::g_logger->GetLogLevel()<=tmms::base::kError) \
         tmms::base::LogStream(tmms::base::g_logger,__FILE__,__LINE__,tmms::base::kError)
 
